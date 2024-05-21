@@ -27,6 +27,32 @@ class ProductController{
         res.status(200).send({ msg: "successfully", result: stocks });
       }
 
+
+  async updateStockSettings(req, res) {
+    const { id, start, end, startColor, endColor } = req.body;
+
+    try {
+        let stock = await Stock.findById(id);
+        if (!stock) {
+            return res.status(404).send({ msg: "Stock not found" });
+        }
+
+        stock.set({
+            start: start,
+            end: end,
+            startColor: startColor,
+            endColor: endColor
+        });
+
+        await stock.save();
+        res.status(200).send({ msg: "Stock settings updated successfully", result: stock });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ msg: "Internal server error" });
+    }
+}
+
+
   async stockIn(req, res) {
     let { docNo, department, itemCode, productId, quantity, expiry, stockInId } = req.body;
     if (!docNo || !department || !itemCode || !productId || !quantity || !expiry ) {

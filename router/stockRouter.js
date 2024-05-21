@@ -6,6 +6,8 @@ const isUserAuth = require("../middlewares/isUserAuth")
 
 
 router.get('/getAllStocks/:departmentName',stockController.getAllStocks)
+router.put("/updateStockSettings",stockController.updateStockSettings);
+
 // router.get('/getAllStocksNew',stockController.getAllStocksNew)
 router.post('/stockIn',isUserAuth,stockController.stockIn) 
 router.post('/stockOuts',isUserAuth,stockController.stockOuts)
