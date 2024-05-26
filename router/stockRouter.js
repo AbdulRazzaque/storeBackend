@@ -25,6 +25,7 @@ router.post('/getPrevStockOutInfo',isUserAuth,stockController.getPrevStockOutInf
 
 router.get('/getStockInDocNo',isUserAuth,stockController.getStockInDocNo)
 router.get('/getStockOutDocNo',isUserAuth,stockController.getStockOutDocNo)
+router.get('/getDiscartitemDocNo',isUserAuth,stockController.getDiscartitemDocNo)
 router.post('/getMonthlyReport',isUserAuth,stockController.getMonthlyReport)
 router.post('/getStockReport',isUserAuth,stockController.getStockReport)
 
