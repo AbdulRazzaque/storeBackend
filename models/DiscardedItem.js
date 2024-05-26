@@ -10,6 +10,7 @@ const DiscardScheme = new mongoose.Schema({
     quantity:{type:Number,default:0, required:true},
     date:{type:Date},
     expiry:{type:Date},
+    comment:{type:String},
     prevQuantity:{type:Number,default:0},
 },{timestamps:true})
 

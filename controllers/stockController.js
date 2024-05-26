@@ -962,8 +962,17 @@ async  updateStockAndExpiryArray(productId, oldQuantity, newQuantity, expiry) {
             res.status(200).send({msg:'success',result:response})
         })
     }
+
+
     async getStockOutDocNo(req,res){
         StockOut.find({},{docNo:1}).sort({createdAt:-1}).limit(1)
+        .then(response=>{
+            res.status(200).send({msg:'success',result:response})
+        })
+    }
+
+    async getDiscartitemDocNo(req,res){
+        Discard.find({},{docNo:1}).sort({createdAt:-1}).limit(1)
         .then(response=>{
             res.status(200).send({msg:'success',result:response})
         })
@@ -1428,7 +1437,7 @@ async  updateStockAndExpiryArray(productId, oldQuantity, newQuantity, expiry) {
 
     async discardItems(req, res) {
    
-        const { unit, productName, productId, docNo, department, quantity, date, memberName, expiry, price, stockOutId } = req.body;
+        const { unit, productName, productId, docNo, department, quantity, date, memberName, expiry, price, comment} = req.body;
     
         if (!docNo || !department || !productId || !quantity || !expiry || !memberName) {
             res.status(400).send("Bad Request");
@@ -1491,6 +1500,7 @@ async  updateStockAndExpiryArray(productId, oldQuantity, newQuantity, expiry) {
             date,
             memberName,
             unit,
+            comment,
             productId: mongoose.Types.ObjectId(productId),
             expiry: expiry ? new Date(expiry) : null,
             stockInPrice: stockIndoc ? stockIndoc.price : 0,
@@ -1516,6 +1526,11 @@ async  updateStockAndExpiryArray(productId, oldQuantity, newQuantity, expiry) {
     
         res.status(200).send({ msg: 'success', result: DiscardResponse });
     }
+
+
+
+
+    
 
     async deleteDiscardItems(req, res) {
         try {
