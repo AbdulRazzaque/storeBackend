@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 const jwt = require("jsonwebtoken")
 const _ = require("lodash")
 const Stock = require("../models/Stock")
+const StockIn =  require("../models/StockIn")
 class ProductController{
     async getProduct (req,res){
         res.send("home routre user")
@@ -84,20 +85,23 @@ async createProduct(req, res) {
             });
     }
     async deleteProduct(req, res, next) {
-        let product;
         try {
-          product = await Product.findByIdAndRemove({ _id: req.params.id });
-          if (!product) {
-            return next(new Error("Noting to delete"));
-          }
-
-     
-  
+            const product = await Product.findByIdAndRemove(req.params.id);
+            if (!product) {
+                return next(new Error("Nothing to delete"));
+            }
+    
+            // Remove the product from stockIn
+            await StockIn.deleteMany({ productId: req.params.id });
+    
+            // Remove the product from Stock
+            await Stock.deleteMany({ product: req.params.id });
+    
+            res.json({ msg: "Product and associated stock entries deleted successfully", product });
         } catch (error) {
-          return next(error);
-        }
-        res.json(product);
-      }
+            return next(error);
+        }
+    }
 
 }
 

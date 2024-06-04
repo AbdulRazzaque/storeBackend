@@ -53,7 +53,7 @@ class ProductController{
 }
 
 
-  async stockIn(req, res) {
+async stockIn(req, res) {
     let { docNo, department, itemCode, productId, quantity, expiry, stockInId } = req.body;
     if (!docNo || !department || !itemCode || !productId || !quantity || !expiry ) {
         res.status(400).send({ msg: "Fill all required fields" });
@@ -122,7 +122,6 @@ class ProductController{
                     docNo,
                     quantity,
                     expiry,
-                  
                     prevQuantity: stockFind.totalQuantity // Set prevQuantity to totalQuantity of existing stock entry
                 });
                 stockInEntry = await newStockIn.save();
@@ -148,16 +147,15 @@ class ProductController{
                     docNo,
                     quantity,
                     expiry,
-              
                     prevQuantity: 0 // Set prevQuantity to 0 for new stock-in entry
                 });
                 stockInEntry = await newStockIn.save();
             }
         }
 
-        res.status(200).send({ msg: "Product added successfully", result: stockInEntry });
-        }
+        res.status(200).send({ msg: "Product added successfully", result: stockInEntry });
     }
+}
 
 async stockOuts(req, res) {
     console.log("Stockout start--------------------------------- body", req.body)
