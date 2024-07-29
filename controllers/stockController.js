@@ -15,9 +15,23 @@ class ProductController{
     }
 
     async getAllStocks(req, res) {
+        // const { departmentName } = req.params; // Assuming departmentName is passed as a parameter in the request
+      
+        // const stocks = await Stock.find({ department: departmentName }, { stockIn: 0, stockOut: 0 })
+        const stocks = await Stock.find({},{ stockIn: 0, stockOut: 0 })
+          .populate("product")
+        //   .populate("department")
+        //   .populate({
+        //     path: "stockIn"
+        //   });
+       
+        res.status(200).send({ msg: "successfully", result: stocks });
+      }
+    async getAllStocksByDepartment(req, res) {
         const { departmentName } = req.params; // Assuming departmentName is passed as a parameter in the request
       
         const stocks = await Stock.find({ department: departmentName }, { stockIn: 0, stockOut: 0 })
+        // const stocks = await Stock.find({},{ stockIn: 0, stockOut: 0 })
           .populate("product")
           .populate("department")
           .populate({
@@ -183,19 +197,20 @@ async stockOuts(req, res) {
             product: mongoose.Types.ObjectId(productId),
             totalQuantity: parsedQuantity,
             expiryArray: [],
-            department: department
+            // department: department
         })
     } else {
         existingStock = await Stock.findOne({
             name: productName,
-            department: department,
+            // department: department,
             "expiryArray": {
                 $elemMatch: {
                     "expiry": new Date(expiry)
                 }
             }
         });
-        stockIndoc = await StockIn.findOne({ name: productName, department: department }).sort({ createdAt: -1 })
+        // stockIndoc = await StockIn.findOne({ name: productName, department: department }).sort({ createdAt: -1 })
+        stockIndoc = await StockIn.findOne({ name: productName}).sort({ createdAt: -1 })
     }
 
     if (existingStock) {
@@ -240,7 +255,7 @@ async stockOuts(req, res) {
         newExpiryArray.map(item => {
             totalQuantity = totalQuantity + item.quantity
         })
-        const stockUpdate = await Stock.updateOne({ product: mongoose.Types.ObjectId(productId), department: department }, { $set: { expiryArray: newExpiryArray, totalQuantity }, $push: { stockOut: stockOutResponse._id } })
+        const stockUpdate = await Stock.updateOne({ product: mongoose.Types.ObjectId(productId) }, { $set: { expiryArray: newExpiryArray, totalQuantity }, $push: { stockOut: stockOutResponse._id } })
         console.log("currentSTockupdate-----", stockUpdate)
     }
 
