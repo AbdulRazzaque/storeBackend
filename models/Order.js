@@ -23,6 +23,7 @@ const orderSchema = new Schema({
 
   refNo: Number,
   itemnumber:String,
+  orderType:{type:String},
   requiredQuantity: [],
   productName: [], 
 },{timestamps:true});

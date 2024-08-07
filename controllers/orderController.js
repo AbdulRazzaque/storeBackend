@@ -7,6 +7,7 @@ class OrderController{
          const newOrder = new Order({
             memberId: req.body.memberId,
             memberName: req.body.memberName,
+            
             products: req.body.productId.map(id => ({ productId: id })),
           
             // products: req.body.productId.map(i => ( i )),
@@ -14,12 +15,13 @@ class OrderController{
             
             requiredQuantity: req.body.requiredQuantity.map(data => (data)),
             status: req.body.status,
+            orderType: req.body.orderType,
             itemnumber:req.body.itemnumber||0
-          });
+        });
         //   console.log(products)
+    
           // Save the order to the database
           const savedOrder = await newOrder.save();
-      
           // Send response back to client 
           res.status(201).json(savedOrder);
         } catch (error) {
@@ -52,7 +54,7 @@ class OrderController{
                         model: 'Product', // Assuming the model name for products is 'Product'
                         select: 'productName sku'
                     })
-                    .select('memberId refNo requiredQuantity products createdAt  status itemnumber');
+                    .select('memberId refNo requiredQuantity products createdAt  status itemnumber orderType');
         
                 return res.status(200).send({ msg: "Success", result: getDetailsOrders });
             } catch (error) {
