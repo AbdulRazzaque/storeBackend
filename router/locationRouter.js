@@ -8,7 +8,7 @@ router.get('/getAllLocations',locationController.getAllLocations)
 router.get('/getSingleLocation',locationController.getSingleLocation)
 router.post('/createLocation',isAdminAuth,locationController.createLocation)
 // router.post('/deleteLocations',isAdminAuth,locationController.deleteLocations)
-router.post('/UpdateLocation',locationController.UpdateLocation)
-router.delete('/deletelocationone/:id',locationController.deletelocationone)
+router.put('/UpdateLocation',locationController.UpdateLocation)
+router.delete('/deleteLocation/:id',locationController.deleteLocation)
 
 module.exports=router;

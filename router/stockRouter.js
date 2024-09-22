@@ -46,5 +46,7 @@ router.delete('/stockInDelete/:id',stockController.stockInDelete)
 router.delete('/stockOutDelete/:id',stockController.stockOutDelete)
 router.put('/updatestockIn/:name',stockController.updatestockIn)
 
-// router.delete('/deleteStockinfo/:name',stockController.deleteStockinfo)
+// ===================================show total stock==============================================
+
+router.get('/stockTotals/',stockController.stockTotals)
 module.exports=router; 

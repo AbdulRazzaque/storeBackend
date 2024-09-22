@@ -5,38 +5,44 @@ const jwt = require("jsonwebtoken")
 
 class LocationController{
     async createLocation(req,res){
-        const {name,trainerName,doctorName}=req.body;
-        if(!name || !trainerName || !doctorName){
-            res.status(400).send("Data Missing")
-        }
-        let newName = `${name} ${trainerName} ${doctorName}`
-        Location.findOne({name:newName})
-        .then(response=>{
-            if(response){
-                res.status(400).send({ message: 'This Location is already available' });
-            }
-            else{
-                const newLocation = new Location({
-                    name,
-                    trainerName,
-                    doctorName,
-                })
-                newLocation.save()
-                .then(newProdResponse=>{
-                    res.status(200).send({msg:"success",result:newProdResponse})
-                })
-            }
-        })
-        
-    }
-    async UpdateLocation(req,res){
-        const {name,trainerName,doctorName,locationId}=req.body;
-        let newName = `${name} ${trainerName} ${doctorName}`
-        if(!name || !trainerName || !doctorName){
+        const {locationName}=req.body;
+        if(!locationName){
             res.status(400).send("Data Missing")
         }
         else{
-            Location.updateOne({_id:mongoose.Types.ObjectId(locationId)},{$set:{name:newName,trainerName,doctorName}})
+            let newName = `${locationName} `
+            try {
+                const existingLocation = await Location.findOne({ locationName:newName})
+                if(existingLocation){
+                    res.status(400).send("Product Already Exist");
+                   }
+                   else{
+                    const newLocation = new Location({
+                        locationName:newName,
+                  
+                    })
+                    newLocation.save()
+                    .then(newProdResponse=>{
+                        res.status(200).send({msg:"Location added successfully",result:newProdResponse})
+                    })
+                }
+            
+
+            } catch (error) {
+                res.status(500).send(`Error: ${error.message}`);
+            }  
+        } 
+    }
+
+
+    async UpdateLocation(req,res){
+        const {locationName,_id}=req.body;
+        let newName = `${locationName}`
+        if(!locationName){
+            res.status(400).send("Data Missing")
+        }
+        else{
+            Location.updateOne({_id:mongoose.Types.ObjectId(_id)},{$set:{locationName:newName}})
             .then(response=>{
                 res.status(200).send({msg:"success",result:response})
             })
@@ -45,7 +51,7 @@ class LocationController{
     }
 
 
-    async deletelocationone(req, res, next) {
+    async deleteLocation(req, res, next) {
         let locationDelete;
         try {
             locationDelete = await Location.findByIdAndRemove({ _id: req.params.id });
