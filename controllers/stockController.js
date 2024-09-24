@@ -68,8 +68,8 @@ class ProductController{
 
 
 async stockIn(req, res) {
-    let { docNo, department, itemCode, productId, quantity, expiry, stockInId } = req.body;
-    if (!docNo || !department || !itemCode || !productId || !quantity || !expiry ) {
+    let { docNo, department, itemCode, productId, quantity, expiry,location, stockInId } = req.body;
+    if (!docNo || !department || !itemCode || !productId || !quantity || !expiry ||!location ) {
         res.status(400).send({ msg: "Fill all required fields" });
     } else {
         quantity = parseInt(quantity);
@@ -135,6 +135,7 @@ async stockIn(req, res) {
                     department,
                     docNo,
                     quantity,
+                    location,
                     expiry,
                     prevQuantity: stockFind.totalQuantity // Set prevQuantity to totalQuantity of existing stock entry
                 });
@@ -146,6 +147,7 @@ async stockIn(req, res) {
                     name: req.body.productName,
                     product: mongoose.Types.ObjectId(productId),
                     totalQuantity: quantity,
+                    location:location,
                     department: department,
                     expiryArray: [{ expiry: new Date(expiry), quantity, prevQuantity:  0 }],
                     stockIn: [stockInEntry?._id]
@@ -160,6 +162,7 @@ async stockIn(req, res) {
                     department,
                     docNo,
                     quantity,
+                    location,
                     expiry,
                     prevQuantity: 0 // Set prevQuantity to 0 for new stock-in entry
                 });
@@ -171,9 +174,13 @@ async stockIn(req, res) {
     }
 }
 
+
+
+
+
 async stockOuts(req, res) {
     console.log("Stockout start--------------------------------- body", req.body)
-    const { unit, productName, productId, docNo, department, quantity, date, memberName, expiry, price, stockOutId } = req.body;
+    const { unit, productName, productId, docNo, department, quantity, date, memberName, expiry, price,location, stockOutId } = req.body;
 
     if (!docNo || !department || !productId || !quantity || !expiry || !memberName) {
         res.status(400).send("Bad Request");
@@ -237,6 +244,7 @@ async stockOuts(req, res) {
         date,
         memberName,
         unit,
+        location,
         productId: mongoose.Types.ObjectId(productId),
         expiry: expiry ? new Date(expiry) : null,
         stockInPrice: stockIndoc ? stockIndoc.price : 0,

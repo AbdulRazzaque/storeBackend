@@ -5,6 +5,7 @@ const stockInScheme = new mongoose.Schema({
     department:{type:String, required:true},
     itemCode:{type:String,default:""},
     name:{type:String,default:""},
+    location:{type:String,required:true},
     productId:{type:mongoose.Types.ObjectId,ref:"Product"},
     quantity:{type:Number,default:0, required:true},
     prevQuantity:{type:Number,default:0},

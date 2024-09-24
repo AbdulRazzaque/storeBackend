@@ -8,6 +8,7 @@ const stockOutScheme = new mongoose.Schema({
     department:{type:String,default:"",required:true},
     productId:{type:mongoose.Types.ObjectId,ref:"Product"},
     quantity:{type:Number,default:0, required:true},
+    location:{type:String},
     date:{type:Date},
     expiry:{type:Date},
     prevQuantity:{type:Number,default:0},
