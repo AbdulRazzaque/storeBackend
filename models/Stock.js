@@ -19,7 +19,7 @@ const stockScheme = new mongoose.Schema({
     name:{type:String,default:"",},
     department:{type:String},
     product:{type:mongoose.Types.ObjectId,ref:"Product"},
-    location:{type:String,required:true},
+    location:{type:String},
     totalQuantity:{type:Number,default:0, },
     start:{type:String,default:"",},
     end:{type:String,default:"",},

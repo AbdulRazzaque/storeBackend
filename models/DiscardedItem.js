@@ -3,6 +3,7 @@ const mongoose = require("mongoose")
 const DiscardScheme = new mongoose.Schema({
     name:{type:String,default:"",required:true},
     docNo:{type:Number,default:1},
+    location:{type:String},
     // memberId:{type:mongoose.Types.ObjectId,ref:"members"},
     memberName:{type:String,default:"",required:true},
     department:{type:String,default:"",required:true},
