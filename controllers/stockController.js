@@ -27,19 +27,19 @@ class ProductController{
        
         res.status(200).send({ msg: "successfully", result: stocks });
       }
-    async getAllStocksByDepartment(req, res) {
-        const { departmentName } = req.params; // Assuming departmentName is passed as a parameter in the request
+//     async getAllStocksByDepartment(req, res) {
+//         const { departmentName } = req.params; // Assuming departmentName is passed as a parameter in the request
       
-        const stocks = await Stock.find({ department: departmentName }, { stockIn: 0, stockOut: 0 })
-        // const stocks = await Stock.find({},{ stockIn: 0, stockOut: 0 })
-          .populate("product")
-          .populate("department")
-          .populate({
-            path: "stockIn"
-          });
+//         const stocks = await Stock.find({ department: departmentName }, { stockIn: 0, stockOut: 0 })
+//         // const stocks = await Stock.find({},{ stockIn: 0, stockOut: 0 })
+//           .populate("product")
+//           .populate("department")
+//           .populate({
+//             path: "stockIn"
+//           });
        
-        res.status(200).send({ msg: "successfully", result: stocks });
-      }
+//         res.status(200).send({ msg: "successfully", result: stocks });
+//       }
 // async getAllStocksByDepartment(req, res) {
 //     const { departmentName } = req.params;
 
@@ -107,24 +107,233 @@ class ProductController{
 // }
 
 
+// async getAllStocksByDepartment(req, res) {
+//     const { departmentName } = req.params;
 
+//     try {
+//         const stocks = await Stock.aggregate([
+//             {
+//                 $match: { department: departmentName }
+//             },
+//             {
+//                 $lookup: {
+//                     from: "products",
+//                     localField: "product",
+//                     foreignField: "_id",
+//                     as: "productDetails"
+//                 }
+//             },
+//             {
+//                 $unwind: { path: "$productDetails", preserveNullAndEmptyArrays: true }
+//             },
+//             {
+//                 $unwind: { path: "$expiryArray", preserveNullAndEmptyArrays: true }
+//             },
+//             {
+//                 $project: {
+//                     id: { $toString: "$_id" },
+//                     quantity: "$expiryArray.quantity",
+//                     expiry: { $dateToString: { format: "%Y-%m-%d", date: "$expiryArray.expiry" } },
+//                     itemCode: {
+//                         $replaceOne: {
+//                             input: "$productDetails.itemCode",
+//                             find: "$productDetails.supplierName",
+//                             replacement: "****"
+//                         }
+//                     },
+//                     name: "$name",
+//                     sku: "$productDetails.sku",
+//                     LotNumber: "$productDetails.lotNumber",
+//                     Manufacturer: "$productDetails.manufacturer",
+//                     physicalLocation:"$productDetails.physicalLocation",
+//                     createdAt: "$createdAt",
+//                     updatedAt: "$updatedAt",
+//                     start: "$start",
+//                     end: "$end",
+//                     startColor: "$startColor",
+//                     endColor: "$endColor"
+//                 }
+//             },
+//             {
+//                 $group: {
+//                     _id: "$_id",
+//                     productDetails: { $push: "$$ROOT" },
+//                     totalQuantity: { $sum: "$quantity" }
+//                 }
+//             },
+//             {
+//                 $sort: { "_id": 1 }
+//             }
+//         ]);
 
+//         // Process the result to filter out items with quantity: 0, but retain the last one with its details
+//         const filteredStocks = stocks.map(stock => {
+//             const originalProductDetails = stock.productDetails; // Keep the original for reference
+//             // Filter out product details with quantity: 0
+//             stock.productDetails = stock.productDetails.filter(product => product.quantity > 0);
 
+//             // Check if any products are left after filtering
+//             if (stock.productDetails.length === 0) {
+//                 // If no products left, retain the last product from the original array
+//                 const lastProduct = originalProductDetails[originalProductDetails.length - 1];
+//                 // Check if the last product is not null
+//                 if (lastProduct) {
+//                     stock.productDetails = [lastProduct]; // Assign the last product's details
+//                 }
+//             }
 
-  async updateStockSettings(req, res) {
+//             return stock;
+//         });
+
+//         // Send the filtered response
+//         res.status(200).send({ msg: "successfully", result: filteredStocks });
+//     } catch (error) {
+//         console.error('Error fetching stocks:', error);
+//         res.status(500).send({ msg: "Error fetching stocks", error: error.message });
+//     }
+// }
+
+async getAllStocksByDepartment(req, res) {
+    const { departmentName } = req.params;
+
+    try {
+        const stocks = await Stock.aggregate([
+            {
+                $match: { department: departmentName }
+            },
+            {
+                $lookup: {
+                    from: "products",
+                    localField: "product",
+                    foreignField: "_id",
+                    as: "productDetails"
+                }
+            },
+            {
+                $unwind: { path: "$productDetails", preserveNullAndEmptyArrays: true }
+            },
+            {
+                $unwind: { path: "$expiryArray", preserveNullAndEmptyArrays: true }
+            },
+            {
+                $project: {
+                    id: { $toString: "$_id" },
+                    quantity: "$expiryArray.quantity",
+                    expiry: { $dateToString: { format: "%Y-%m-%d", date: "$expiryArray.expiry" } },
+                    itemCode: {
+                        $replaceOne: {
+                            input: "$productDetails.itemCode",
+                            find: "$productDetails.supplierName",
+                            replacement: "****"
+                        }
+                    },
+                    name: "$productDetails.productName",
+                    sku: "$productDetails.sku",
+                    LotNumber: "$productDetails.lotNumber",
+                    Manufacturer: "$productDetails.manufacturer",
+                    physicalLocation: "$productDetails.physicalLocation",
+                    createdAt: "$createdAt",
+                    updatedAt: "$updatedAt",
+                    start: "$start",
+                    end: "$end",
+                    startColor: "$startColor",
+                    endColor: "$endColor"
+                }
+            },
+            {
+                $group: {
+                    _id: "$_id",
+                    productDetails: { $push: "$$ROOT" },
+                    totalQuantity: { $sum: "$quantity" }
+                }
+            },
+            {
+                $sort: { "_id": 1 }
+            }
+        ]);
+
+        const filteredStocks = stocks.map(stock => {
+            const originalProductDetails = stock.productDetails; // Keep the original for reference
+            // Filter out product details with quantity > 0
+            stock.productDetails = stock.productDetails.filter(product => product.quantity > 0);
+        
+            // Check if no products are left after filtering
+            if (stock.productDetails.length === 0) {
+                // If no products left, retain only itemCode, name, and location from the last product
+                const lastProduct = originalProductDetails[originalProductDetails.length - 1];
+                if (lastProduct) {
+                    // stock.productDetails = [lastProduct]; // Assign the last product's details
+                    // Assign the required fields for the last product
+                    stock.productDetails = [{
+                        itemCode: lastProduct.itemCode,
+                        name: lastProduct.name || "No Name Available", // Fallback in case name is missing
+                        physicalLocation: lastProduct.physicalLocation || "No Location Available"
+                    }];
+                }
+            }
+        
+            return stock;
+        });
+
+        // Send the filtered response
+        res.status(200).send({ msg: "successfully", result: filteredStocks });
+    } catch (error) {
+        console.error('Error fetching stocks:', error);
+        res.status(500).send({ msg: "Error fetching stocks", error: error.message });
+    }
+}
+
+//   async updateStockSettings(req, res) {
+//     const { id, start, end, startColor, endColor } = req.body;
+// console.log(req.body,"color body")
+//     try {
+//         let stock = await Stock.findById(id);
+//         if (!stock) {
+//             return res.status(404).send({ msg: "Stock not found" });
+//         }
+
+//         stock.set({
+//             start: start,
+//             end: end,
+//             startColor: startColor,
+//             endColor: endColor
+//         });
+
+//         await stock.save();
+//         res.status(200).send({ msg: "Stock settings updated successfully", result: stock });
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).send({ msg: "Internal server error" });
+//     }
+// }
+async updateStockSettings(req, res) {
     const { id, start, end, startColor, endColor } = req.body;
-console.log(req.body,"color body")
+    console.log(req.body, "color body");
+    
     try {
         let stock = await Stock.findById(id);
         if (!stock) {
             return res.status(404).send({ msg: "Stock not found" });
         }
 
+        // Assume totalQuantity is a property of the stock
+        const totalQuantity = stock.totalQuantity;
+
+        // Update colors based on the quantity range
+        if (totalQuantity >= start && totalQuantity <= end) {
+            stock.startColor = startColor;
+            stock.endColor = endColor;
+        } else {
+            stock.startColor = 'black'; // Default color
+            stock.endColor = 'black'; // Default color
+        }
+
+        // Update stock settings
         stock.set({
             start: start,
             end: end,
-            startColor: startColor,
-            endColor: endColor
+            startColor: stock.startColor,
+            endColor: stock.endColor
         });
 
         await stock.save();
@@ -135,6 +344,9 @@ console.log(req.body,"color body")
     }
 }
 
+
+
+  
 
 async stockIn(req, res) {
     let { docNo, department, itemCode, productId, quantity, expiry, location, stockInId } = req.body;

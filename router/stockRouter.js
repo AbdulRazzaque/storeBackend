@@ -50,4 +50,5 @@ router.put('/updatestockIn/:name',stockController.updatestockIn)
 // ===================================show total stock==============================================
 
 router.get('/stockTotals/',stockController.stockTotals)
+
 module.exports=router; 
