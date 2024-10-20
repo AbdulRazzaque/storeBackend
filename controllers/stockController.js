@@ -238,6 +238,7 @@ async getAllStocksByDepartment(req, res) {
                     end: "$end",
                     startColor: "$startColor",
                     endColor: "$endColor"
+                
                 }
             },
             {
@@ -267,7 +268,8 @@ async getAllStocksByDepartment(req, res) {
                     stock.productDetails = [{
                         itemCode: lastProduct.itemCode,
                         name: lastProduct.name || "No Name Available", // Fallback in case name is missing
-                        physicalLocation: lastProduct.physicalLocation || "No Location Available"
+                        physicalLocation: lastProduct.physicalLocation || "No Location Available",
+                        sku: lastProduct.sku || "No SKU Available"
                     }];
                 }
             }
@@ -283,57 +285,21 @@ async getAllStocksByDepartment(req, res) {
     }
 }
 
-//   async updateStockSettings(req, res) {
-//     const { id, start, end, startColor, endColor } = req.body;
-// console.log(req.body,"color body")
-//     try {
-//         let stock = await Stock.findById(id);
-//         if (!stock) {
-//             return res.status(404).send({ msg: "Stock not found" });
-//         }
 
-//         stock.set({
-//             start: start,
-//             end: end,
-//             startColor: startColor,
-//             endColor: endColor
-//         });
-
-//         await stock.save();
-//         res.status(200).send({ msg: "Stock settings updated successfully", result: stock });
-//     } catch (error) {
-//         console.error(error);
-//         res.status(500).send({ msg: "Internal server error" });
-//     }
-// }
 async updateStockSettings(req, res) {
     const { id, start, end, startColor, endColor } = req.body;
-    console.log(req.body, "color body");
-    
+
     try {
         let stock = await Stock.findById(id);
         if (!stock) {
             return res.status(404).send({ msg: "Stock not found" });
         }
 
-        // Assume totalQuantity is a property of the stock
-        const totalQuantity = stock.totalQuantity;
-
-        // Update colors based on the quantity range
-        if (totalQuantity >= start && totalQuantity <= end) {
-            stock.startColor = startColor;
-            stock.endColor = endColor;
-        } else {
-            stock.startColor = 'black'; // Default color
-            stock.endColor = 'black'; // Default color
-        }
-
-        // Update stock settings
         stock.set({
             start: start,
             end: end,
-            startColor: stock.startColor,
-            endColor: stock.endColor
+            startColor: startColor,
+            endColor: endColor
         });
 
         await stock.save();
@@ -343,6 +309,43 @@ async updateStockSettings(req, res) {
         res.status(500).send({ msg: "Internal server error" });
     }
 }
+
+
+//  async updateStockSettings (req, res) {
+//     console.log(req.boyd)
+//     const { id, start, end, startColor, endColor } = req.body;
+//     console.log(req.body, "color body");
+
+//     // Check if all required fields are provided
+//     if (!id || start === undefined || end === undefined || !startColor || !endColor) {
+//         return res.status(400).send({ msg: "Missing required fields" });
+//     }
+
+//     try {
+//         // Find the stock by ID
+//         let stock = await Stock.findById(id);
+//         if (!stock) {
+//             return res.status(404).send({ msg: "Stock not found" });
+//         }
+
+//         // Update the stock's range and color settings
+//         stock.rangeSettings = {
+//             start: start,          // Start of the quantity range
+//             end: end,              // End of the quantity range
+//             startColor: startColor,// Color when quantity is equal to start
+//             endColor: endColor     // Color when quantity is equal to end
+//         };
+
+//         // Save the updated stock settings
+//         await stock.save();
+
+//         // Send a successful response with the updated stock details
+//         res.status(200).send({ msg: "Stock settings updated successfully", result: stock });
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).send({ msg: "Internal server error" });
+//     }
+// };
 
 
 
