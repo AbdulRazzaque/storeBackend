@@ -219,7 +219,8 @@ async getAllStocksByDepartment(req, res) {
                 $project: {
                     id: { $toString: "$_id" },
                     quantity: "$expiryArray.quantity",
-                    expiry: { $dateToString: { format: "%Y-%m-%d", date: "$expiryArray.expiry" } },
+                    // expiry: { $dateToString: { format: "%Y-%m-%d", date: "$expiryArray.expiry" } },
+                    expiry: "$expiryArray.expiry",  // Keep the raw date
                     itemCode: {
                         $replaceOne: {
                             input: "$productDetails.itemCode",
@@ -249,7 +250,7 @@ async getAllStocksByDepartment(req, res) {
                 }
             },
             {
-                $sort: { "_id": 1 }
+                $sort: { "productDetails.itemCode": 1 }
             }
         ]);
 
@@ -291,6 +292,7 @@ async updateStockSettings(req, res) {
 
     try {
         let stock = await Stock.findById(id);
+        console.log(stock,'stock')
         if (!stock) {
             return res.status(404).send({ msg: "Stock not found" });
         }
@@ -301,7 +303,7 @@ async updateStockSettings(req, res) {
             startColor: startColor,
             endColor: endColor
         });
-
+        
         await stock.save();
         res.status(200).send({ msg: "Stock settings updated successfully", result: stock });
     } catch (error) {
@@ -351,123 +353,257 @@ async updateStockSettings(req, res) {
 
   
 
-async stockIn(req, res) {
-    let { docNo, department, itemCode, productId, quantity, expiry, location, stockInId } = req.body;
+// async stockIn(req, res) {
+  
+//     let { docNo, department, itemCode, productId, quantity, expiry, location, stockInId } = req.body;
 
-    if (!docNo || !department || !itemCode || !productId || !quantity || !expiry || !location) {
-        return res.status(400).send({ msg: "Fill all required fields" });
-    }
+//     if (!docNo || !department || !itemCode || !productId || !quantity || !expiry || !location) {
+//         return res.status(400).send({ msg: "Fill all required fields" });
+//     }
 
-    quantity = parseInt(quantity);
-    let stockInEntry;
-    let stockFind;
+//     quantity = parseInt(quantity);
+//     let stockInEntry;
+//     let stockFind;
 
-    if (stockInId) {
-        // Update existing stock-in entry
-        stockInEntry = await StockIn.findById(stockInId);
-        if (!stockInEntry) {
-            return res.status(404).send({ msg: "StockIn entry not found" });
+//     if (stockInId) {
+//         // Update existing stock-in entry
+//         stockInEntry = await StockIn.findById(stockInId);
+//         if (!stockInEntry) {
+//             return res.status(404).send({ msg: "StockIn entry not found" });
+//         }
+//         let prevQuantity = stockInEntry.quantity; // Store the previous quantity
+//         stockInEntry.quantity = quantity;
+//         stockInEntry.expiry = expiry;
+
+//         await stockInEntry.save();
+
+//         // Check for stock entry based on productId, department, and location
+//         stockFind = await Stock.findOne({ product: mongoose.Types.ObjectId(productId), department, location });
+//         if (!stockFind) {
+//             return res.status(404).send({ msg: "Stock entry not found" });
+//         }
+
+//         // Update stock expiry array and total quantity
+//         let existingExpiryEntry = stockFind.expiryArray.find(entry => entry.expiry.getTime() === new Date(expiry).getTime());
+
+//         if (existingExpiryEntry) {
+//             existingExpiryEntry.quantity += quantity - prevQuantity; // Update the quantity difference
+//         } else {
+//             stockFind.expiryArray.push({ expiry: new Date(expiry), quantity: quantity - prevQuantity, location });
+//         }
+
+//         let totalQuantity = stockFind.expiryArray.reduce((acc, entry) => acc + entry.quantity, 0);
+//         await Stock.updateOne(
+//             { product: mongoose.Types.ObjectId(productId), department, location },
+//             { $set: { expiryArray: stockFind.expiryArray, totalQuantity } }
+//         );
+
+//     } else {
+//         // Check if a stock entry already exists for the product, department, and location
+//         stockFind = await Stock.findOne({ product: mongoose.Types.ObjectId(productId), department });
+
+//         if (stockFind) {
+//             // Update existing stock entry
+//             // let existingExpiryEntry = stockFind.expiryArray.find(entry => entry.expiry.getTime() === new Date(expiry).getTime() && entry.location === location);
+//             let existingExpiryEntry = stockFind.expiryArray.find(entry => 
+//                 entry.expiry.toISOString().split('T')[0] === new Date(expiry).toISOString().split('T')[0] && 
+//                 entry.location === location
+//             );
+            
+//             if (existingExpiryEntry) {
+//                 existingExpiryEntry.quantity += quantity;
+//             } else {
+//                 // Create a new expiry entry for this location
+//                 stockFind.expiryArray.push({ expiry: new Date(expiry), quantity, location });
+//             }
+
+//             let totalQuantity = stockFind.expiryArray.reduce((acc, entry) => acc + entry.quantity, 0);
+//             await Stock.updateOne(
+//                 { product: mongoose.Types.ObjectId(productId), department },
+//                 { $set: { expiryArray: stockFind.expiryArray, totalQuantity } }
+//             );
+
+//             // Create new stock-in entry
+//             const newStockIn = new StockIn({
+//                 name: req.body.productName,
+//                 productId,
+//                 itemCode,
+//                 department,
+//                 docNo,
+//                 quantity,
+//                 location,
+//                 expiry,
+//                 prevQuantity: stockFind.totalQuantity // Set prevQuantity to totalQuantity of existing stock entry
+//             });
+//             stockInEntry = await newStockIn.save();
+
+//         } else {
+//             // Create new stock entry
+//             const newStock = new Stock({
+//                 name: req.body.productName,
+//                 product: mongoose.Types.ObjectId(productId),
+//                 totalQuantity: quantity,
+//                 location,
+//                 department,
+//                 expiryArray: [{ expiry: new Date(expiry), quantity, location }],
+//                 stockIn: [] // Initially, no stockIn reference yet
+//             });
+//             await newStock.save();
+
+//             // Create new stock-in entry
+//             const newStockIn = new StockIn({
+//                 name: req.body.productName,
+//                 productId,
+//                 itemCode,
+//                 department,
+//                 docNo,
+//                 quantity,
+//                 location,
+//                 expiry,
+//                 prevQuantity: 0 // Set prevQuantity to 0 for new stock-in entry
+//             });
+//             stockInEntry = await newStockIn.save();
+
+//             // Update the stock entry with the stockIn reference
+//             await Stock.updateOne(
+//                 { product: mongoose.Types.ObjectId(productId), department },
+//                 { $push: { stockIn: stockInEntry._id } }
+//             );
+//         }
+//     }
+
+//     res.status(200).send({ msg: "Product added successfully", result: stockInEntry });
+// }
+
+
+
+async  stockIn(req, res) {
+    try {
+        let { docNo, department, itemCode, productId, quantity, expiry, location, stockInId } = req.body;
+
+        if (!docNo || !department || !itemCode || !productId || !quantity || !expiry || !location) {
+            return res.status(400).send({ msg: "Fill all required fields" });
         }
-        let prevQuantity = stockInEntry.quantity; // Store the previous quantity
-        stockInEntry.quantity = quantity;
-        stockInEntry.expiry = expiry;
 
-        await stockInEntry.save();
+        quantity = parseInt(quantity);
+        let stockInEntry;
+        let stockFind;
 
-        // Check for stock entry based on productId, department, and location
-        stockFind = await Stock.findOne({ product: mongoose.Types.ObjectId(productId), department, location });
-        if (!stockFind) {
-            return res.status(404).send({ msg: "Stock entry not found" });
-        }
+        if (stockInId) {
+            // Update existing stock-in entry
+            stockInEntry = await StockIn.findById(stockInId);
+            if (!stockInEntry) {
+                return res.status(404).send({ msg: "StockIn entry not found" });
+            }
 
-        // Update stock expiry array and total quantity
-        let existingExpiryEntry = stockFind.expiryArray.find(entry => entry.expiry.getTime() === new Date(expiry).getTime());
+            let prevQuantity = stockInEntry.quantity; // Store the previous quantity
+            stockInEntry.quantity = quantity;
+            stockInEntry.expiry = expiry;
 
-        if (existingExpiryEntry) {
-            existingExpiryEntry.quantity += quantity - prevQuantity; // Update the quantity difference
-        } else {
-            stockFind.expiryArray.push({ expiry: new Date(expiry), quantity: quantity - prevQuantity, location });
-        }
+            await stockInEntry.save();
 
-        let totalQuantity = stockFind.expiryArray.reduce((acc, entry) => acc + entry.quantity, 0);
-        await Stock.updateOne(
-            { product: mongoose.Types.ObjectId(productId), department, location },
-            { $set: { expiryArray: stockFind.expiryArray, totalQuantity } }
-        );
+            // Check for stock entry based on productId, department, and location
+            stockFind = await Stock.findOne({ product: mongoose.Types.ObjectId(productId), department, location });
+            if (!stockFind) {
+                return res.status(404).send({ msg: "Stock entry not found" });
+            }
 
-    } else {
-        // Check if a stock entry already exists for the product, department, and location
-        stockFind = await Stock.findOne({ product: mongoose.Types.ObjectId(productId), department });
-
-        if (stockFind) {
-            // Update existing stock entry
-            let existingExpiryEntry = stockFind.expiryArray.find(entry => entry.expiry.getTime() === new Date(expiry).getTime() && entry.location.trim() === location.trim());
+            // Update stock expiry array and total quantity
+            let existingExpiryEntry = stockFind.expiryArray.find(entry =>
+                moment.parseZone(entry.expiry).local().format("DD/MM/YY") === moment.parseZone(expiry).local().format("DD/MM/YY")
+            );
 
             if (existingExpiryEntry) {
-                existingExpiryEntry.quantity += quantity;
+                existingExpiryEntry.quantity += quantity - prevQuantity; // Update the quantity difference
             } else {
-                // Create a new expiry entry for this location
-                stockFind.expiryArray.push({ expiry: new Date(expiry), quantity, location });
+                stockFind.expiryArray.push({ expiry: new Date(expiry), quantity: quantity - prevQuantity, location });
             }
 
             let totalQuantity = stockFind.expiryArray.reduce((acc, entry) => acc + entry.quantity, 0);
             await Stock.updateOne(
-                { product: mongoose.Types.ObjectId(productId), department },
+                { product: mongoose.Types.ObjectId(productId), department, location },
                 { $set: { expiryArray: stockFind.expiryArray, totalQuantity } }
             );
 
-            // Create new stock-in entry
-            const newStockIn = new StockIn({
-                name: req.body.productName,
-                productId,
-                itemCode,
-                department,
-                docNo,
-                quantity,
-                location,
-                expiry,
-                prevQuantity: stockFind.totalQuantity // Set prevQuantity to totalQuantity of existing stock entry
-            });
-            stockInEntry = await newStockIn.save();
-
         } else {
-            // Create new stock entry
-            const newStock = new Stock({
-                name: req.body.productName,
-                product: mongoose.Types.ObjectId(productId),
-                totalQuantity: quantity,
-                location,
-                department,
-                expiryArray: [{ expiry: new Date(expiry), quantity, location }],
-                stockIn: [] // Initially, no stockIn reference yet
-            });
-            await newStock.save();
+            // Check if a stock entry already exists for the product, department, and location
+            stockFind = await Stock.findOne({ product: mongoose.Types.ObjectId(productId), department });
 
-            // Create new stock-in entry
-            const newStockIn = new StockIn({
-                name: req.body.productName,
-                productId,
-                itemCode,
-                department,
-                docNo,
-                quantity,
-                location,
-                expiry,
-                prevQuantity: 0 // Set prevQuantity to 0 for new stock-in entry
-            });
-            stockInEntry = await newStockIn.save();
+            if (stockFind) {
+                // Update existing stock entry
+                let existingExpiryEntry = stockFind.expiryArray.find(entry =>
+                    moment.parseZone(entry.expiry).local().format("DD/MM/YY") === moment.parseZone(expiry).local().format("DD/MM/YY") && 
+                    entry.location === location
+                );
+                
+                if (existingExpiryEntry) {
+                    existingExpiryEntry.quantity += quantity;
+                } else {
+                    // Create a new expiry entry for this location
+                    stockFind.expiryArray.push({ expiry: new Date(expiry), quantity, location });
+                }
 
-            // Update the stock entry with the stockIn reference
-            await Stock.updateOne(
-                { product: mongoose.Types.ObjectId(productId), department },
-                { $push: { stockIn: stockInEntry._id } }
-            );
+                let totalQuantity = stockFind.expiryArray.reduce((acc, entry) => acc + entry.quantity, 0);
+                await Stock.updateOne(
+                    { product: mongoose.Types.ObjectId(productId), department },
+                    { $set: { expiryArray: stockFind.expiryArray, totalQuantity } }
+                );
+
+                // Create new stock-in entry
+                const newStockIn = new StockIn({
+                    name: req.body.productName,
+                    productId,
+                    itemCode,
+                    department,
+                    docNo,
+                    quantity,
+                    location,
+                    expiry,
+                    prevQuantity: stockFind.totalQuantity // Set prevQuantity to totalQuantity of existing stock entry
+                });
+                stockInEntry = await newStockIn.save();
+
+            } else {
+                // Create new stock entry
+                const newStock = new Stock({
+                    name: req.body.productName,
+                    product: mongoose.Types.ObjectId(productId),
+                    totalQuantity: quantity,
+                    location,
+                    department,
+                    expiryArray: [{ expiry: new Date(expiry), quantity, location }],
+                    stockIn: [] // Initially, no stockIn reference yet
+                });
+                await newStock.save();
+
+                // Create new stock-in entry
+                const newStockIn = new StockIn({
+                    name: req.body.productName,
+                    productId,
+                    itemCode,
+                    department,
+                    docNo,
+                    quantity,
+                    location,
+                    expiry,
+                    prevQuantity: 0 // Set prevQuantity to 0 for new stock-in entry
+                });
+                stockInEntry = await newStockIn.save();
+
+                // Update the stock entry with the stockIn reference
+                await Stock.updateOne(
+                    { product: mongoose.Types.ObjectId(productId), department },
+                    { $push: { stockIn: stockInEntry._id } }
+                );
+            }
         }
+
+        res.status(200).send({ msg: "Product added successfully", result: stockInEntry });
+    } catch (error) {
+        console.error(error); // Log the error for debugging
+        res.status(500).send({ msg: "An error occurred while processing the request", error: error.message });
     }
-
-    res.status(200).send({ msg: "Product added successfully", result: stockInEntry });
 }
-
 
 
 async stockOuts(req, res) {
