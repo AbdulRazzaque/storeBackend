@@ -219,8 +219,7 @@ async getAllStocksByDepartment(req, res) {
                 $project: {
                     id: { $toString: "$_id" },
                     quantity: "$expiryArray.quantity",
-                    // expiry: { $dateToString: { format: "%Y-%m-%d", date: "$expiryArray.expiry" } },
-                    expiry: "$expiryArray.expiry",  // Keep the raw date
+                    expiry: "$expiryArray.expiry", // Keep the raw date
                     itemCode: {
                         $replaceOne: {
                             input: "$productDetails.itemCode",
@@ -239,7 +238,6 @@ async getAllStocksByDepartment(req, res) {
                     end: "$end",
                     startColor: "$startColor",
                     endColor: "$endColor"
-                
                 }
             },
             {
@@ -255,26 +253,34 @@ async getAllStocksByDepartment(req, res) {
         ]);
 
         const filteredStocks = stocks.map(stock => {
+            // Ensure productDetails is always an array, even if it's empty
+            stock.productDetails = stock.productDetails || [];
+
             const originalProductDetails = stock.productDetails; // Keep the original for reference
-            // Filter out product details with quantity > 0
+
+            // Filter out products with quantity <= 0
             stock.productDetails = stock.productDetails.filter(product => product.quantity > 0);
-        
-            // Check if no products are left after filtering
+
+            // Calculate the total quantity based on the filtered products
+            const totalQuantity = stock.productDetails.reduce((total, product) => total + product.quantity, 0);
+
+            // If no products are left after filtering, assign a fallback product
             if (stock.productDetails.length === 0) {
-                // If no products left, retain only itemCode, name, and location from the last product
                 const lastProduct = originalProductDetails[originalProductDetails.length - 1];
                 if (lastProduct) {
-                    // stock.productDetails = [lastProduct]; // Assign the last product's details
-                    // Assign the required fields for the last product
                     stock.productDetails = [{
                         itemCode: lastProduct.itemCode,
                         name: lastProduct.name || "No Name Available", // Fallback in case name is missing
                         physicalLocation: lastProduct.physicalLocation || "No Location Available",
                         sku: lastProduct.sku || "No SKU Available"
                     }];
+                    // Set total quantity to 0 if no products are available
+                    stock.totalQuantity = 0;
                 }
+            } else {
+                stock.totalQuantity = totalQuantity;  // Assign the calculated total quantity
             }
-        
+
             return stock;
         });
 
@@ -285,6 +291,8 @@ async getAllStocksByDepartment(req, res) {
         res.status(500).send({ msg: "Error fetching stocks", error: error.message });
     }
 }
+
+
 
 
 async updateStockSettings(req, res) {
@@ -961,35 +969,48 @@ async deleteStockOut(req, res) {
 }
 
 
-    async getPrevStockOutInfo(req, res) {
-        console.log(req.body);
-        if (!req.body.start || !req.body.end || !req.body.department || !req.body.productId) {
-            // If any of the required parameters are missing, send a Bad Request response
-            res.status(400).send("Bad Request");
-        } else {
-            // If all required parameters are present, proceed with processing
-            let startDate = new Date(req.body.start); // Parse start date
-            let endDate = new Date(req.body.end); // Parse end date
-            const department = req.body.department; // Extract department from request body
-            const productIds = req.body.productId; // Extract product IDs from request body
-            
-            // Find stock out information based on provided criteria
-            try {
-                const response = await StockOut.find({
-                    productId: { $in: productIds.map(id => mongoose.Types.ObjectId(id)) }, // Filter by product IDs
-                    department: department, // Filter by department
-                    createdAt: { $gte: startDate, $lte: endDate } // Filter by date range
-                }).exec();
-                
-                // Send success response with the found results
-                res.status(200).send({ msg: "success", result: response });
-            } catch (error) {
-                // Handle any errors that occur during the process
-                console.error(error);
-                res.status(500).send("Internal Server Error");
-            }
-        }
+async getPrevStockOutInfo(req, res) {
+    console.log(req.body);
+
+    // Check for required parameters
+    if (!req.body.start || !req.body.end || !req.body.department || !req.body.productId) {
+        // If any of the required parameters are missing, send a Bad Request response
+        return res.status(400).send("Bad Request");
     }
+
+    // Parse start and end dates
+    let startDate = new Date(req.body.start); // Parse start date
+    let endDate = new Date(req.body.end); // Parse end date
+    
+    // Ensure valid date ranges
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return res.status(400).send("Invalid date format");
+    }
+
+    // Set start and end times to local start and end of the day
+    startDate.setHours(0, 0, 0, 0); // Start of the day in local time
+    endDate.setHours(23, 59, 59, 999); // End of the day in local time
+
+    const department = req.body.department; // Extract department from request body
+    const productIds = Array.isArray(req.body.productId) ? req.body.productId : [req.body.productId]; // Ensure productIds is an array
+
+    try {
+        // Find stock-out information based on provided criteria
+        const response = await StockOut.find({
+            productId: { $in: productIds.map(id => mongoose.Types.ObjectId(id)) }, // Filter by product IDs
+            department: department, // Filter by department
+            createdAt: { $gte: startDate, $lte: endDate } // Filter by date range
+        }).exec();
+        
+        // Send success response with the found results
+        res.status(200).send({ msg: "success", result: response });
+    } catch (error) {
+        // Handle any errors that occur during the process
+        console.error(error);
+        res.status(500).send("Internal Server Error");
+    }
+}
+
     
     // async getPrevStockInInfo(req,res){
     //     console.log(req.body)
@@ -1126,75 +1147,103 @@ async deleteStockOut(req, res) {
         
     // }
     async getPrevStockInInfo(req, res) {
-      console.log(req.body);
-      if (!req.body.start || !req.body.end || !req.body.department || !req.body.productId) {
-          res.status(400).send("Bad Request");
-      } else {
-          var startDate = new Date(req.body.start);
-          var endDate = new Date(req.body.end);
-          const productIds = req.body.productId;
-          const department = req.body.department; // Assuming department is provided as a string
-  
-          StockIn.aggregate([
-              {
-                  $match: {
-                      createdAt: { $gte: startDate, $lte: endDate },
-                      productId: { $in: productIds.map(id => mongoose.Types.ObjectId(id)) },
-                      department: department // Match by department
-                  }
-              }, // Comment: Matching documents by department
-              {
-                  $group: {
-                      _id: "$productId",
-                      stockInDocs: { $push: "$$ROOT" },
-                      totalStockIn: { $sum: "$quantity" }
-                  }
-              },
-              {
-                  $lookup: {
-                      from: "StockOut",
-                      localField: "_id",
-                      foreignField: "productId",
-                      as: "stockOutData"
-                  }
-              },
-              {
-                  $unwind: {
-                      path: "$stockOutData",
-                      preserveNullAndEmptyArrays: true
-                  }
-              },
-              {
-                  $group: {
-                      _id: "$_id",
-                      stockInDocs: { $first: "$stockInDocs" },
-                      totalDifference: { $sum: { $subtract: ["$totalStockIn", { $ifNull: ["$stockOutData.quantity", 0] }] } }
-                  }
-              },
-              {
-                  $unwind: "$stockInDocs"
-              },
-              {
-                  $project: {
-                      _id: "$stockInDocs._id",
-                      productId: "$_id",
-                      name: "$stockInDocs.name",
-                      department: "$stockInDocs.department",
-                      prevQuantity: "$stockInDocs.prevQuantity",
-                      quantity: "$stockInDocs.quantity",
-                      price: "$stockInDocs.price",
-                      createdAt: "$stockInDocs.createdAt",
-                      expiry: "$stockInDocs.expiry",
-                      location: "$stockInDocs.location",
-                      totalDifference: 1
-                  }
-              }
-          ])
-          .then(response => {
-              res.status(200).send({ msg: "success", result: response });
-          });
-      }
-  }
+        console.log(req.body);
+    
+        // Check if required fields are present in the request body
+        if (!req.body.start || !req.body.end || !req.body.department || !req.body.productId) {
+            return res.status(400).send("Bad Request");
+        }
+    
+        // Parse the dates
+        const startDate = new Date(req.body.start);
+        const endDate = new Date(req.body.end);
+    
+        // Validate date range
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            return res.status(400).send("Invalid date format");
+        }
+    
+        // Adjust to the start and end of the day
+        startDate.setHours(0, 0, 0, 0); // Start of the day
+        endDate.setHours(23, 59, 59, 999); // End of the day
+    
+        const productIds = Array.isArray(req.body.productId) ? req.body.productId : [req.body.productId]; // Ensure productIds is always an array
+        const department = req.body.department;
+    
+        try {
+            // Aggregate the data from the StockIn collection
+            const response = await StockIn.aggregate([
+                {
+                    $match: {
+                        createdAt: { $gte: startDate, $lte: endDate },
+                        productId: { $in: productIds.map(id => mongoose.Types.ObjectId(id)) },
+                        department: department,
+                    }
+                },
+                {
+                    $group: {
+                        _id: "$productId",
+                        stockInDocs: { $push: "$$ROOT" },
+                        totalStockIn: { $sum: "$quantity" }
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "StockOut",
+                        localField: "_id",
+                        foreignField: "productId",
+                        as: "stockOutData"
+                    }
+                },
+                {
+                    $unwind: {
+                        path: "$stockOutData",
+                        preserveNullAndEmptyArrays: true
+                    }
+                },
+                {
+                    $group: {
+                        _id: "$_id",
+                        stockInDocs: { $first: "$stockInDocs" },
+                        totalDifference: {
+                            $sum: {
+                                $subtract: [
+                                    "$totalStockIn",
+                                    { $ifNull: ["$stockOutData.quantity", 0] }
+                                ]
+                            }
+                        }
+                    }
+                },
+                {
+                    $unwind: "$stockInDocs"
+                },
+                {
+                    $project: {
+                        _id: "$stockInDocs._id",
+                        productId: "$_id",
+                        name: "$stockInDocs.name",
+                        department: "$stockInDocs.department",
+                        prevQuantity: "$stockInDocs.prevQuantity",
+                        quantity: "$stockInDocs.quantity",
+                        price: "$stockInDocs.price",
+                        createdAt: "$stockInDocs.createdAt",
+                        expiry: "$stockInDocs.expiry",
+                        location: "$stockInDocs.location",
+                        totalDifference: 1
+                    }
+                }
+            ]);
+    
+            // Send the response with the aggregated data
+            res.status(200).send({ msg: "success", result: response });
+        } catch (error) {
+            // Handle any errors that occur during the aggregation process
+            console.error(error);
+            res.status(500).send("Internal Server Error");
+        }
+    }
+    
   
     async getStockInDocNo(req,res){
         StockIn.find({},{docNo:1}).sort({createdAt:-1}).limit(1)

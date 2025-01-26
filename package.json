@@ -25,6 +25,7 @@
     "moment": "^2.29.4",
     "mongodb": "^4.3.0",
     "mongoose": "^6.1.5",
-    "nodemon": "^2.0.20"
+    "nodemon": "^2.0.20",
+    "punycode": "^2.3.1"
   }
 }
